@@ -15,43 +15,9 @@ const sequelize = new Sequelize(
 );
 
 
-const sequelize2 = new Sequelize(
-  process.env.DB2_DATABASE,
-  process.env.DB2_USERNAME,
-  process.env.DB2_PASSWORD,
-  {
-    host: process.env.DB2_HOST,
-    dialect: process.env.DB2_DIALECT,
-    logging: false ,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 300000,
-      idle: 10000,
-    },
-    dialectOptions: {
-      options: {
-        requestTimeout: 300000, // Timeout for queries (in ms)
-      },
-    },
-  },
-);
 
 
-const sequelize3 = process.env.DB3_DIALECT && process.env.DB3_DATABASE
-  ? new Sequelize(
-      process.env.DB3_DATABASE,
-      process.env.DB3_USERNAME,
-      process.env.DB3_PASSWORD,
-      {
-        host: process.env.DB3_HOST,
-        dialect: process.env.DB3_DIALECT,
-        logging: false,
-        pool: { max: 5, min: 0, acquire: 300000, idle: 10000 },
-        dialectOptions: { options: { requestTimeout: 300000 } },
-      }
-    )
-  : null;
+
 
 // Test the connection
 (async () => {
@@ -64,25 +30,9 @@ const sequelize3 = process.env.DB3_DIALECT && process.env.DB3_DATABASE
     console.error("Unable to connect to CRM:", error);
   }
 
-  try {
-    await sequelize2.authenticate();
-    console.log(
-      "Connection to the database UNIGES has been established successfully.",
-    );
-  } catch (error) {
-    console.error("Unable to connect to UNIGES");
-  }
 
-  if (sequelize3) {
-    try {
-      await sequelize3.authenticate();
-      console.log("Connection to the database PARAUTO has been established successfully.");
-    } catch (error) {
-      console.error("Unable to connect to PARAUTO");
-    }
-  } else {
-    console.log("⚠️  PARAUTO (DB3) not configured — skipping connection.");
-  }
+
+  
 })();
 
 // Import models
@@ -594,7 +544,6 @@ models.Gouvernerat.associate(models);
 // Export the sequelize instance and models
 module.exports = {
   sequelize,
-  sequelize2,
-  sequelize3,
+ 
   models,
 };
