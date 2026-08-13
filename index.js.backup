@@ -1,0 +1,72 @@
+const express = require("express");
+const cors = require("cors");
+const cookieParse = require("cookie-parser");
+const cronManager = require('./cronJobs');
+//const sequelize = require('./database');
+require("dotenv").config();
+const setupRoutes = require("./appRoutes");
+
+app = express();
+app.use(express.json());
+app.use(
+  cors({
+    credentials: true,
+    origin: ["http://localhost:3000","http://192.168.1.185:3000"],
+
+    allowedHeaders: ["Authorization", "Content-Type", 'Cache-Control',  // Add this
+    'Pragma',          // Add this
+    'Expires' ],
+  })
+);
+
+
+function initializeCronJobs() {
+    try {
+        const cronManager = require('./cronJobs');
+        cronManager.initializeCronJobs();
+        console.log('✅ Cron jobs initialized successfully');
+    } catch (error) {
+        console.error('⚠️  Failed to initialize cron jobs:', error.message);
+        console.log('⚠️  Fleet sync will not run automatically');
+    }
+}
+
+// Handle graceful shutdown
+function setupGracefulShutdown() {
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM received, shutting down...');
+        shutdown();
+    });
+
+    process.on('SIGINT', () => {
+        console.log('SIGINT received, shutting down...');
+        shutdown();
+    });
+
+    async function shutdown() {
+        try {
+            // Stop cron jobs if they exist
+            const cronManager = require('./cronJobs');
+            cronManager.stopAllCronJobs();
+            console.log('✅ Cron jobs stopped');
+        } catch (error) {
+            console.error('Error stopping cron jobs:', error);
+        }
+        
+        // Add any other cleanup here
+        console.log('👋 Server shutting down gracefully');
+        process.exit(0);
+    }
+}
+app.use(cookieParse());
+setupRoutes(app);
+app.listen(process.env.NODE_PORT, () => {
+  console.log("serveur is working on " + process.env.NODE_PORT + " ......");
+
+ initializeCronJobs();
+    
+    // Setup graceful shutdown
+    setupGracefulShutdown();
+
+});
+
