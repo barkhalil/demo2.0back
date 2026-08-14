@@ -10,6 +10,11 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
 
     dialect: process.env.DB_DIALECT,
+    dialectOptions: {
+      // mysql2 returns DECIMAL/SUM() results as strings by default, which
+      // breaks .toFixed() calls on the frontend; this makes them numbers.
+      decimalNumbers: true,
+    },
     logging: false,
   },
 );

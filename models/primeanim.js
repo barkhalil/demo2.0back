@@ -11,7 +11,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DECIMAL(12,3),
       allowNull: true
     },
-    cavital: {
+    cademo: {
       type: DataTypes.DECIMAL(12,3),
       allowNull: true
     },

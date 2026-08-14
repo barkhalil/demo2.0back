@@ -41,16 +41,16 @@ router.post("/getcaProd", validator, async (req, res) => {
   a2 = aDate.toISOString().split("T")[0];
   //console.log(de2+" "+a2)
   try {
-    const ca = await sequelize2.query(
-      "SELECT  sum(ca) as ca , art FROM kb_ca_art_day_fact where date>=:de and date<=:a group by art ORDER BY ca DESC",
+    const ca = await sequelize.query(
+      "SELECT  sum(ttc) as ca , art FROM ca_tot_vente where date>=:de and date<=:a group by art ORDER BY ca DESC",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
       },
     );
 
-    const caY = await sequelize2.query(
-      "SELECT  sum(ca) as ca , art FROM kb_ca_art_day_fact where date>=:de2 and date<=:a2 group by art ORDER BY ca DESC",
+    const caY = await sequelize.query(
+      "SELECT  sum(ttc) as ca , art FROM ca_tot_vente where date>=:de2 and date<=:a2 group by art ORDER BY ca DESC",
       {
         replacements: { de2, a2 },
         type: Sequelize.QueryTypes.SELECT,
@@ -802,11 +802,11 @@ router.post("/getPredictionProductsMonthly", validator, async (req, res) => {
     );
 
     // 3. Récupérer le stock actuel de chaque article
-    const artStock = await sequelize2.query(
+    const artStock = await sequelize.query(
       `SELECT 
         art_code,
         SUM(qte) as stock_qte
-      FROM kb_stock_art_all 
+      FROM ca_tot_vente
       GROUP BY art_code`,
       {
         type: Sequelize.QueryTypes.SELECT,
@@ -1946,8 +1946,8 @@ router.post("/getPredictionProductsMonthlyCA", validator, async (req, res) => {
     );
 
     // 3. Stock
-    const artStock = await sequelize2.query(
-      `SELECT art_code, SUM(qte) as stock_qte FROM kb_stock_art_all GROUP BY art_code`,
+    const artStock = await sequelize.query(
+      `SELECT art as art_code, SUM(qte) as stock_qte FROM ca_tot_vente GROUP BY art_code`,
       { type: Sequelize.QueryTypes.SELECT }
     );
 
@@ -2463,8 +2463,8 @@ router.post("/getCA", validator, async (req, res) => {
   const { de, a } = req.body;
   const year = new Date(de).getFullYear();
   try {
-    const ca = await sequelize2.query(
-      "SELECT SUM (TotCa) as TotCa FROM kb_caFact_day WHERE date> = :de AND date<= :a",
+    const ca = await sequelize.query(
+      "SELECT SUM(ttc) as TotCa FROM ca_tot_vente WHERE date>= :de AND date<= :a and ttc>0",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
@@ -2479,30 +2479,30 @@ router.post("/getCA", validator, async (req, res) => {
       },
     );
 
-    const bl = await sequelize2.query(
-      "SELECT SUM (TotCa) as TotCa FROM kb_bl_nonFact WHERE date> = :de AND date<= :a",
+    const bl = await sequelize.query(
+      "SELECT SUM (0) as TotCa FROM ca_tot_vente WHERE date>= :de AND date<= :a",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
       },
     );
-    const avoir = await sequelize2.query(
-      "SELECT SUM( TotAv) as TotAv FROM kb_avoirCaFact WHERE date> = :de AND date<= :a",
+    const avoir = await sequelize.query(
+      "SELECT SUM( ttc) as TotAv FROM ca_tot_vente WHERE date>= :de AND date<= :a and ttc<0",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
       },
     );
-    const avoirFi = await sequelize2.query(
-      "SELECT SUM(TotAv) as TotAv  FROM kb_avoirFiFact WHERE date> = :de AND date<= :a",
+    const avoirFi = await sequelize.query(
+      "SELECT SUM(ttc) as TotAv  FROM ca_tot_vente WHERE date>= :de AND date<= :a and ttc=0",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
       },
     );
 
-    const encVS = await sequelize2.query(
-      "SELECT SUM (ca) as TotCa FROM kb_encVS WHERE date> = :de AND date<= :a",
+    const encVS = await sequelize.query(
+      "SELECT SUM (0) as TotCa FROM ca_tot_vente WHERE date>= :de AND date<= :a",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
@@ -2599,16 +2599,16 @@ router.post("/getCADay", validator, async (req, res) => {
   a2 = aDate.toISOString().split("T")[0]; // Format as YYYY-MM-DD
 
   try {
-    const ca = await sequelize2.query(
-      "SELECT ca, FORMAT(date, 'yyyy-MM-dd') AS date FROM kb_ca_day_fact WHERE date> = :de AND date<= :a",
+    const ca = await sequelize.query(
+      "SELECT SUM(ttc) as ca, DATE_FORMAT(date, '%Y-%m-%d') AS date FROM ca_tot_vente WHERE date>= :de AND date<= :a GROUP BY date ORDER BY date",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
       },
     );
 
-    const ca2 = await sequelize2.query(
-      "SELECT ca, FORMAT(date, 'yyyy-MM-dd') AS date FROM kb_ca_day_fact WHERE date> = :de2 AND date<= :a2",
+    const ca2 = await sequelize.query(
+      "SELECT SUM(ttc) as ca, DATE_FORMAT(date, '%Y-%m-%d') AS date FROM ca_tot_vente WHERE date>= :de2 AND date<= :a2 GROUP BY date ORDER BY date",
       {
         replacements: { de2, a2 },
         type: Sequelize.QueryTypes.SELECT,
@@ -2628,8 +2628,8 @@ router.post("/getCADayFamille", validator, async (req, res) => {
   const { de, a } = req.body;
 
   try {
-    const ca = await sequelize2.query(
-      "SELECT sum(ttc) as ca, fam FROM kb_ca_day_famille WHERE date> = :de AND date<= :a  group by fam ORDER BY ca DESC",
+    const ca = await sequelize.query(
+      "SELECT sum(ttc) as ca, fam FROM ca_tot_vente WHERE date>= :de AND date<= :a  group by fam ORDER BY ca DESC",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,
@@ -2670,8 +2670,8 @@ router.post("/getcaDayArticle", validator, async (req, res) => {
   const { de, a } = req.body;
 
   try {
-    const ca = await sequelize2.query(
-      "SELECT  sum(ca) as ca , art FROM kb_ca_art_day_fact where date>=:de and date<=:a group by art ORDER BY ca DESC",
+    const ca = await sequelize.query(
+      "SELECT  sum(ttc) as ca , art FROM ca_tot_vente where date>=:de and date<=:a group by art ORDER BY ca DESC",
       {
         replacements: { de, a },
         type: Sequelize.QueryTypes.SELECT,

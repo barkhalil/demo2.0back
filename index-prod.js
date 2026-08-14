@@ -18,8 +18,8 @@ app.use(
         return callback(null, true);
       }
       const allowedDomains = [
-       "http://v2.vital-crm.com:453",
-        "http://192.168.1.110","http://localhost","http://api.vital-crm.com",
+       "http://v2.demo-crm.com:453",
+        "http://192.168.1.110","http://localhost","http://api.demo-crm.com",
       ];
       const isAllowed = allowedDomains.some((pattern) =>
         typeof pattern === "string" ? pattern === origin : pattern.test(origin)

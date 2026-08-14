@@ -11,7 +11,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.FLOAT,
       allowNull: true
     },
-    cavital: {
+    cademo: {
       type: DataTypes.FLOAT,
       allowNull: true
     },

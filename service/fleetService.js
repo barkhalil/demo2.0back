@@ -63,8 +63,8 @@ async function getAuthToken() {
   const tokenResponse = await axios.post(
     "https://fleet.tn/ws_rimtrack_all/signin",
     {
-      username: "vital",
-      password: "vital*2022",
+      username: "demo",
+      password: "demo*2022",
     },
     {
       headers: {
