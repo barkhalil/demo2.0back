@@ -2522,40 +2522,55 @@ router.post("/getCA", validator, async (req, res) => {
     res.status(500).send("Error executing query");
   }
 });
+// Locally-sourced "factures" built from ca_tot_vente (the SQL Server
+// FactureE/FactureD ERP tables aren't reachable from this demo environment).
+// One "invoice" = one client's sales rows for a given day; the day itself
+// is used as the invoice Numero since ca_tot_vente has no invoice number.
 router.post("/getClientFactures", async (req, res) => {
   const { clientId, idFact, years = new Date().getFullYear() } = req.body;
 
   try {
-    let query;
-    let replacements;
+    const whereClause = idFact ? "cl = :idFact" : "id_crm = :clientId";
+    const baseReplacements = idFact ? { idFact } : { clientId };
 
-    if (!idFact) {
-      query = `
-        SELECT * FROM FactureE 
-        WHERE IDCRM = :clientId 
-        AND YEAR(Date) = :years 
-        ORDER BY Date ASC
-      `;
-      replacements = { clientId, years };
-    } else {
-      query = `
-        SELECT * FROM FactureE 
-        WHERE Client = :idFact 
-        AND YEAR(Date) = :years 
-        ORDER BY Date ASC
-      `;
-      replacements = { idFact, years };
-    }
-
-    let result = await sequelize2.query(query, {
-      replacements,
-      type: Sequelize.QueryTypes.SELECT,
-    });
+    let result = await sequelize.query(
+      `SELECT
+         DATE_FORMAT(date, '%Y-%m-%d') as Numero,
+         DATE_FORMAT(date, '%Y-%m-%d') as Date,
+         MAX(fam) as RS,
+         SUM(ht) as THT,
+         SUM(ttc - ht) as TVA,
+         SUM(ttc) as TTC,
+         0 as Reliquat,
+         CASE WHEN SUM(ttc) < 0 THEN -1 ELSE 1 END as sens,
+         CASE WHEN SUM(ttc) < 0 THEN 'FRB' ELSE 'FACT' END as Type
+       FROM ca_tot_vente
+       WHERE ${whereClause} AND YEAR(date) = :years
+       GROUP BY date
+       ORDER BY date ASC`,
+      {
+        replacements: { ...baseReplacements, years },
+        type: Sequelize.QueryTypes.SELECT,
+      },
+    );
 
     // Fallback: if no results, try with idFact without year filter
     if (result.length === 0 && idFact) {
-      result = await sequelize2.query(
-        `SELECT * FROM FactureE WHERE Client = :idFact ORDER BY Date ASC`,
+      result = await sequelize.query(
+        `SELECT
+           date as Numero,
+           date as Date,
+           MAX(fam) as RS,
+           SUM(ht) as THT,
+           SUM(ttc - ht) as TVA,
+           SUM(ttc) as TTC,
+           0 as Reliquat,
+           CASE WHEN SUM(ttc) < 0 THEN -1 ELSE 1 END as sens,
+           CASE WHEN SUM(ttc) < 0 THEN 'FRB' ELSE 'FACT' END as Type
+         FROM ca_tot_vente
+         WHERE cl = :idFact
+         GROUP BY date
+         ORDER BY date ASC`,
         {
           replacements: { idFact },
           type: Sequelize.QueryTypes.SELECT,
@@ -2570,12 +2585,31 @@ router.post("/getClientFactures", async (req, res) => {
   }
 });
 router.post("/getFactureDetail", async (req, res) => {
-  const { numero } = req.body;
+  const { numero, clientId, idFact } = req.body; // numero = the invoice date (YYYY-MM-DD)
   try {
-    const result = await sequelize2.query(
-      `SELECT * FROM FactureD WHERE Numero = :numero`,
+    const whereClause = idFact ? "v.cl = :idFact" : "v.id_crm = :clientId";
+    const replacements = idFact ? { idFact, numero } : { clientId, numero };
+
+    const result = await sequelize.query(
+      `SELECT
+         v.art as Article,
+         COALESCE(p.name, v.art) as Des,
+         v.qte as QStock,
+         v.qte as QPrix,
+         'Boite' as unite,
+         CASE WHEN v.qte > 0 THEN v.ht / v.qte ELSE 0 END as PUHTB,
+         0 as TxRem,
+         CASE WHEN v.ht > 0 THEN ((v.ttc - v.ht) / v.ht) * 100 ELSE 0 END as TxTVA,
+         v.ht as THT,
+         (v.ttc - v.ht) as TVA,
+         v.ttc as TTC,
+         'L' as Statut
+       FROM ca_tot_vente v
+       LEFT JOIN products p ON p.code_article = v.art
+       WHERE ${whereClause} AND v.date = :numero
+       ORDER BY v.art`,
       {
-        replacements: { numero },
+        replacements,
         type: Sequelize.QueryTypes.SELECT,
       },
     );
